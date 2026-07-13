@@ -1,4 +1,4 @@
-import adminModel from "../models/adminModel.js";
+import adminModel from "../models/AdminModel.js";
 import jsonwebtoken from "jsonwebtoken";
 import bycript from "bcryptjs";
 import { config } from "../../config.js";
