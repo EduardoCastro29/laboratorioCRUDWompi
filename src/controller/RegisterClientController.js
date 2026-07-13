@@ -4,7 +4,6 @@ import jsonwebtoken from "jsonwebtoken";
 import bycript from "bcryptjs";
 import clientModel from "../models/ClientModel.js";
 import { config } from "../../config.js";
-import { error, info } from "console";
 
 const registerEmployeeController = {};
 
@@ -18,7 +17,7 @@ registerEmployeeController.register = async (req, res) => {
     const passwordHashed = await bycript.hash(password, 10);
     const randomNumber = crypto.randomBytes(3).toString("hex");
     const token = jsonwebtoken.sign(
-      { randomNumber, name, email, password: passwordHashed, isActive: true },
+      { randomNumber, name, email, password: passwordHashed },
       config.jwt.secret,
       { expiresIn: "15m" },
     );
@@ -44,10 +43,36 @@ registerEmployeeController.register = async (req, res) => {
         console.log("Error" + error);
         return res.status(500).json({ message: "Error sending email" });
       }
-      return res.status(200).json({message: "Email sent"});
     });
+    return res.status(200).json({ message: "Email sent" });
   } catch (error) {
-    console.log("error"+error)
-    return res.status(500).json({message: "internal server error"});
+    console.log("error" + error);
+    return res.status(500).json({ message: "internal server error" });
   }
 };
+
+registerEmployeeController.verifyCode = async (req, res) => {
+  try {
+    const { verificationCodeRequest } = req.body;
+    const token = req.cookies.registrationCookie;
+    const decoded = jsonwebtoken.verify(token, config.jwt.secret);
+    const { randomNumber: storedCode, name, password, email } = decoded;
+    if (verificationCodeRequest !== storedCode) {
+      return res.status(400).json({ message: "Invalid code" });
+    }
+    const newClient = clientModel({
+      name,
+      email,
+      password,
+      isVerified: true,
+    });
+    await newClient.save();
+    res.clearCookie("registrationCookie");
+    return res.status(200).json({ messag: "Client registered" });
+  } catch (error) {
+    console.log("error" + error);
+    return res.status(500).json("Internal server error");
+  }
+};
+
+export default registerEmployeeController;
